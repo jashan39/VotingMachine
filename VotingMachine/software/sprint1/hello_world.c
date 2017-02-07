@@ -1,0 +1,341 @@
+/*
+ * "Hello World" example.
+ *
+ * This example prints 'Hello from Nios II' to the STDOUT stream. It runs on
+ * the Nios II 'standard', 'full_featured', 'fast', and 'low_cost' example
+ * designs. It runs with or without the MicroC/OS-II RTOS and requires a STDOUT
+ * device in your system's hardware.
+ * The memory footprint of this hosted application is ~69 kbytes by default
+ * using the standard reference design.
+ *
+ * For a reduced footprint version of this template, and an explanation of how
+ * to reduce the memory footprint for a given application, see the
+ * "small_hello_world" template.
+ *
+ */
+
+#include <stdio.h>
+#include<stdlib.h>
+
+#define GPS_Control (*(volatile unsigned char *)(0x84000210))
+#define GPS_Status (*(volatile unsigned char *)(0x84000210))
+#define GPS_TxData (*(volatile unsigned char *)(0x84000212))
+#define GPS_RxData (*(volatile unsigned char *)(0x84000212))
+#define GPS_Baud (*(volatile unsigned char *)(0x84000214))
+
+
+#define push_buttons (volatile int *) 0x0002060
+#define leds (char *) 0x0002010
+#define switches (volatile char *) 0x0002000
+#define hex0_1 (char *) 0x0002030
+
+
+int candidate1 = 0;
+int candidate2 = 0;
+int candidate3 = 0;
+
+
+//Voting Data
+int voters[128];
+int verify = 0;
+int voterID;
+
+//GPS
+#define arrayLength 100
+
+char arr[arrayLength];
+
+char hours[2] = {0};
+char minutes[2] = {0};
+char seconds[2] = {0};
+
+char latitude[10];
+char longitude[10];
+
+char directionNS[1];
+char directionEW[1];
+
+int i ;
+
+
+//GPS
+void Init_GPS(void){
+		GPS_Control = 0x55;
+		GPS_Baud = 0x05;
+}
+
+//Receiving from GPS
+char getcharGPS(){
+
+while((GPS_Status & 0x01) != 1){
+}
+
+return GPS_RxData;
+}
+
+void intialiseArray(){
+	int j;
+	for(j = 0; j < 100; j++){
+		arr[j] = '-';
+	}
+}
+
+
+
+void getInfo(){
+	char count;
+	i = 0;
+	while(1){
+
+		count = getcharGPS();
+		if(count == '$'){
+			if(getcharGPS() == 'G')
+				if(getcharGPS() == 'P')
+					if(getcharGPS() == 'G')
+						if(getcharGPS() == 'G')
+							if(getcharGPS() == 'A'){
+								count = getcharGPS();
+								while(count != '\n'){
+									arr[i] =  count;
+									count = getcharGPS();
+									i++;
+								}
+										break;
+							}
+		}
+
+	}
+
+}
+
+
+void extractInformation(){
+
+
+	char end = '-';
+	int i = 1;
+
+	while(1){
+
+		int k;
+		//Extract hours
+		for(k = 0; k < 2; k++){
+			hours[k] = arr[i];
+			i++;
+		}
+
+		//Extract minutes
+		for( k = 0; k < 2; k++){
+			minutes[k] = arr[i];
+			i++;
+			}
+
+		//Extract seconds
+		for( k = 0; k < 2; k++){
+			seconds[k] = arr[i];
+			i++;
+			}
+
+		//To skip the .sss from the seconds
+		i = i+5;
+
+		//Extract Latitude
+		for( k = 0; k < 9; k++){
+			latitude[k] = arr[i];
+			i++;
+			}
+
+		//To skip the comma
+		i++;
+
+		//Extract NS Direction
+		directionNS[0] = arr[i];
+
+		//To skip the comma
+		i = i + 2;
+
+		//Extract the longitude
+		for( k = 0; k < 10; k++){
+			longitude[k] = arr[i];
+			i++;
+			}
+
+		i = i+1;
+
+		//Extract EW Direction
+		directionEW[0] = arr[i];
+
+		break;
+	}
+}
+
+void printGPS(){
+
+	int counter;
+
+	//Printing Time
+	printf("\nTime: ");
+	for(counter = 0; counter < 2; counter++){
+		printf("%c", hours[counter]);
+	}
+
+	printf(":");
+
+	for(counter = 0; counter < 2; counter++){
+		printf("%c", minutes[counter]);
+	}
+
+	printf(":");
+
+	for(counter = 0; counter < 2; counter++){
+		printf("%c", seconds[counter]);
+	}
+
+	//Latitude
+	printf("\nLatitude: ");
+	for(counter = 0; counter < 9; counter++){
+	printf("%c", latitude[counter]);
+	}
+
+	//Longitude
+	printf("\nLongitude: ");
+	for(counter = 0; counter < 10; counter++){
+	printf("%c", longitude[counter]);
+	}
+
+	//DirectionNS
+	printf("\nDirection(NS): ");
+	for(counter = 0; counter < 1; counter++){
+	printf("%c", directionNS[counter]);
+	}
+
+	//DirectionEW
+	printf("\nDirection(EW): ");
+	for(counter = 0; counter < 1; counter++){
+	printf("%c", directionEW[counter]);
+	}
+}
+
+
+void printVote(){
+
+		getInfo();
+		extractInformation();
+
+	printf("\n\n\n\n\nCandidate 1: %d", candidate1);
+	printf("\nCandidate 2: %d", candidate2);
+	printf("\nCandidate 3: %d", candidate3);
+	printf("\n\nVoter ID: %d\n\n", *switches);
+	printf("Voting Stats: \n");
+	printGPS();
+}
+
+void incrementCandidate1(){
+	candidate1 = candidate1 + 1;
+}
+
+void incrementCandidate2(){
+	candidate2 = candidate2 + 1;
+}
+
+void incrementCandidate3(){
+	candidate3 = candidate3 + 1;
+}
+
+
+
+
+int check(){
+	int verify;
+	int compare = *switches;
+
+	int counter;
+	for(counter = 0; counter < 128; counter++){
+		if(voters[counter] == compare){
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
+void storeID(){
+	voters[verify] = *switches;
+	verify++;
+}
+
+int main()
+{
+
+Init_GPS();
+intialiseArray();
+
+while(1){
+
+
+	*hex0_1 = *switches;
+	voterID = *switches;
+
+	//Candidate3
+	if(~(*push_buttons) & 4){
+		*leds = 4;
+
+		while(~(*push_buttons) & 4);
+
+		if(check(voterID)){
+		incrementCandidate3();
+		printVote();
+		storeID();
+		}
+
+		else{
+			printf("\nYou have already voted once!! \n");
+		}
+	}
+
+	//Candidate2
+	else if(~(*push_buttons) & 2){
+			*leds = 2;
+
+			while(~(*push_buttons) & 2);
+
+			if(check(voterID)){
+				incrementCandidate2();
+				printVote();
+				storeID();
+				}
+
+			else{
+				printf("\nYou have already voted once!! \n");
+					}
+
+		}
+
+	//Candidate1
+	else if(~(*push_buttons) & 1){
+				*leds = 1;
+
+				while(~(*push_buttons) & 1);
+
+				if(check(voterID)){
+					incrementCandidate1();
+					printVote();
+					storeID();
+				}
+
+				else{
+					printf("\nYou have already voted once!! \n");
+						}
+
+			}
+
+	else{
+		*leds = 0;
+	}
+
+}
+
+
+	return 0;
+
+}

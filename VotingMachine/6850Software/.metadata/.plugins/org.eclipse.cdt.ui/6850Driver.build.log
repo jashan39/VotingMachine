@@ -1,0 +1,9 @@
+13:28:36 **** Incremental Build of configuration Nios II for project 6850Driver ****
+make all 
+Info: Building ../6850Driver_bsp/
+C:/altera/15.0/nios2eds/bin/gnu/H-x86_64-mingw32/bin/make --no-print-directory -C ../6850Driver_bsp/
+[BSP build complete]
+[6850Driver build complete]
+
+13:28:37 Build Finished (took 515ms)
+
