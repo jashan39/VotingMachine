@@ -1,6 +1,5 @@
 # VotingMachine
 
- DESCRIPTION
  Voting Machine using DE1-SoC board with NIOS II/f Processor 
 
   FEATURES
@@ -19,7 +18,7 @@
 - Open the DE1_SoC project
 - Open Eclipse from Quartus
 - Create a new file with BSP template
-- Add the nios file, name the project and click finish
+- Add the .sopcinfo file, name the project and click finish
 - Open your projects folder and hello_world.c file
 - Replace the code in the hello_world.c file with the code in voting_machine.c in the repository
 - Generate BSP, clean and build the project 
